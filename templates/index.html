@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-3xl font-bold mb-6 text-center">Our Products</h1>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+  {% for item in items %}
+  <div class="bg-white rounded-xl shadow hover:shadow-lg transition">
+    <a href="{{ url_for('item', item_id=item.id) }}">
+      <img src="{{ url_for('static', filename=item.main_image) }}" alt="{{ item.title }}"
+           class="w-full h-48 object-cover rounded-t-xl">
+      <div class="p-4 text-center">
+        <h3 class="text-lg font-semibold text-green-800">{{ item.title }}</h3>
+      </div>
+      {% if item.price %}
+        <p class="price">Price: {{ "%.2f"|format(item.price) }} €</p>
+      {% else %}
+        <p class="price">Price: N/A</p>
+      {% endif %}
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

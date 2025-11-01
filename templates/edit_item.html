@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow">
+  <h2 class="text-2xl font-bold text-green-800 mb-6">✏️ Edit Item</h2>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-6">
+
+    <!-- TITLE -->
+    <div>
+      <label class="block font-semibold mb-1">Title</label>
+      <input type="text" name="title" value="{{ item.title }}" required
+             class="w-full border border-gray-300 rounded-lg p-3 text-lg focus:ring-2 focus:ring-green-500">
+    </div>
+
+    <!-- DESCRIPTION -->
+    <div>
+      <label class="block font-semibold mb-1">Description</label>
+      <textarea name="description" rows="6" required
+                class="w-full border border-gray-300 rounded-lg p-3 text-lg focus:ring-2 focus:ring-green-500">{{ item.description }}</textarea>
+    </div>
+
+    <!-- PRICE -->
+    <div>
+      <label class="block font-semibold mb-1">Price (€)</label>
+      <input type="text" name="price"
+             value="{{ ('%.2f' % item.price) | replace('.', ',' if get_locale()=='pt_PT' else '.') }}"
+             required
+             class="w-full border border-gray-300 rounded-lg p-3 text-lg focus:ring-2 focus:ring-green-500">
+    </div>
+
+    <!-- CATEGORY -->
+    <div>
+      <label class="block font-semibold mb-1">Category</label>
+      <input type="text" name="category" value="{{ item.category }}"
+             class="w-full border border-gray-300 rounded-lg p-3 text-lg focus:ring-2 focus:ring-green-500">
+    </div>
+
+    <!-- AVAILABILITY -->
+    <div class="flex items-center space-x-3">
+      <input type="checkbox" name="available" id="available" value="1"
+             {% if item.available %}checked{% endif %}
+             class="w-5 h-5 text-green-600 rounded border-gray-300 focus:ring-green-500">
+      <label for="available" class="font-semibold">Available</label>
+    </div>
+
+    <!-- UNIFIED GALLERY & UPLOAD ZONE -->
+    <div class="mt-4">
+      <h3 class="text-lg font-semibold mb-2">Gallery</h3>
+
+      <!-- Upload Zone -->
+      <div id="image_zone"
+           class="border-2 border-dashed border-gray-400 rounded-lg p-4 text-center cursor-pointer hover:border-green-500 transition">
+        <p class="text-gray-500">Drag & drop images here or click to select</p>
+        <input id="new_images" name="new_images" type="file" multiple hidden>
+      </div>
+
+      <!-- Unified Gallery -->
+      <div id="image_gallery" data-images='{{ gallery_json|safe }}'></div>
+
+      <!-- Hidden input for order -->
+      <input type="hidden" id="image_order" name="image_order">
+    </div>
+
+
+    <!-- SUBMIT BUTTON -->
+    <div class="pt-4">
+      <button type="submit"
+              class="bg-green-700 text-white px-6 py-3 rounded-lg hover:bg-green-800 transition text-lg">
+        💾 Save Changes
+      </button>
+      <a href="{{ url_for('admin_panel') }}"
+         class="ml-4 text-green-700 hover:underline">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<!-- JS for Drag & Drop Image Previews -->
+<script nonce="{{ csp_nonce() }}" src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener("DOMContentLoaded", () => {
+  const gallery = document.getElementById("image_gallery");
+  if (!gallery) return;
+
+  const sortable = new Sortable(gallery, {
+    animation: 150,
+    onEnd: () => {
+      const ids = Array.from(gallery.querySelectorAll(".image-item")).map(el => el.dataset.id);
+      document.getElementById("image_order").value = JSON.stringify(ids);
+      console.log("✅ Updated image order:", ids);
+    }
+  });
+});
+</script>
+{% endblock %}

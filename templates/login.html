@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin Login</h2>
+<form method="post">
+  <input type="password" name="password" placeholder="Enter password" required>
+  <button type=_("submit")>Login</button>
+</form>
+<p>You will stay logged in until you log out or close your browser.</p>
+<a href="{{ url_for('index') }}">Back to shop</a>
+{% endblock %}

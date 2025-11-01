@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white shadow rounded-xl p-6">
+
+  <!-- Main Image -->
+  {% if gallery %}
+    <img id="main_image"
+         src="{{ url_for('static', filename=gallery[0].filename) }}"
+         alt="{{ _('Main image of') }} {{ item.title }}"
+         class="w-full h-96 object-contain rounded-lg mb-6 border border-gray-300">
+  {% endif %}
+
+  <!-- Thumbnails -->
+  {% if gallery|length > 1 %}
+    <div class="flex flex-wrap gap-4 mb-6">
+      {% for img in gallery %}
+        <img src="{{ url_for('static', filename=img.filename) }}"
+             alt="{{ _('Gallery image') }} {{ loop.index }}"
+             class="w-24 h-24 object-cover rounded-lg border border-gray-300 cursor-pointer thumbnail"
+             data-full="{{ url_for('static', filename=img.filename) }}">
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Item Info -->
+  <h2 class="text-2xl font-bold text-green-800 mb-2">{{ item.title }}</h2>
+  <p class="mb-4">{{ item.description }}</p>
+
+  <p class="text-lg">
+    <strong>{{ _('Price') }}:</strong>
+    {{ format_currency(item.price, 'EUR', locale=get_locale()) }}
+  </p>
+
+  <p class="text-lg mb-6">
+    <strong>{{ _('Status') }}:</strong>
+    {% if item.available %}
+      ✅ {{ _('Available') }}
+    {% else %}
+      ❌ {{ _('Out of Stock') }}
+    {% endif %}
+  </p>
+
+  <!-- Contact Button -->
+  <a href="{{ url_for('contact', item_id=item.id) }}"
+     class="inline-block bg-green-700 text-white px-5 py-2 rounded-lg hover:bg-green-800 transition">
+    📩 {{ _('Contact Advertiser') }}
+  </a>
+</div>
+
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener("DOMContentLoaded", () => {
+  const mainImage = document.getElementById("main_image");
+  const thumbnails = document.querySelectorAll(".thumbnail");
+
+  thumbnails.forEach(thumb => {
+    thumb.addEventListener("click", () => {
+      mainImage.src = thumb.dataset.full;
+    });
+  });
+});
+</script>
+{% endblock %}

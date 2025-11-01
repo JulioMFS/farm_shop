@@ -1,0 +1,226 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: Farm Shop 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-31 18:47+0000\n"
+"PO-Revision-Date: 2025-10-31 00:00+0000\n"
+"Last-Translator: Julio <you@example.com>\n"
+"Language: en\n"
+"Language-Team: English\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: app.py:170
+msgid "Please log in first."
+msgstr ""
+
+#: app.py:277 app.py:373
+msgid "Item not found."
+msgstr ""
+
+#: app.py:293
+msgid "Your message has been sent successfully!"
+msgstr ""
+
+#: app.py:307
+#, fuzzy
+msgid "Logged in successfully!"
+msgstr "Login successful!"
+
+#: app.py:310
+#, fuzzy
+msgid "Invalid password."
+msgstr "Invalid username or password."
+
+#: app.py:316
+msgid "You have been logged out."
+msgstr ""
+
+# -----------------------------
+# Messages & feedback
+#: app.py:330 app.py:357
+msgid "Item added successfully!"
+msgstr "Item added successfully!"
+
+#: app.py:386
+#, fuzzy
+msgid "Invalid price format."
+msgstr "Invalid username or password."
+
+#: app.py:454
+msgid "Item updated successfully!"
+msgstr "Item updated successfully!"
+
+#: app.py:496
+msgid "Item deleted."
+msgstr "Item deleted."
+
+#: templates/add_item.html:3
+msgid "Welcome to the Farm Shop!"
+msgstr ""
+
+#: templates/add_item.html:4
+msgid "Browse or add items below."
+msgstr ""
+
+#: templates/add_item.html:5 templates/admin.html:6
+msgid "Add New Item"
+msgstr "Add New Item"
+
+#: templates/add_item.html:11
+#, fuzzy
+msgid "Price:"
+msgstr "Price"
+
+#: templates/add_item.html:15 templates/admin.html:13 templates/item.html:37
+msgid "Available"
+msgstr "Available"
+
+#: templates/add_item.html:17
+msgid "Upload up to 10 images (drag to reorder; first = main):"
+msgstr ""
+
+#: templates/add_item.html:27
+#, fuzzy
+msgid "Add Item"
+msgstr "Add New Item"
+
+#: templates/add_item.html:30
+#, fuzzy
+msgid "Back to Admin Panel"
+msgstr "Admin Panel"
+
+#: templates/admin.html:4
+msgid "Admin Panel"
+msgstr "Admin Panel"
+
+# -----------------------------
+# Item fields
+#: templates/admin.html:10
+msgid "Title"
+msgstr "Title"
+
+#: templates/admin.html:11 templates/item.html:30
+msgid "Price"
+msgstr "Price"
+
+#: templates/admin.html:12
+msgid "Category"
+msgstr "Category"
+
+#: templates/admin.html:14
+msgid "Actions"
+msgstr "Actions"
+
+#: templates/admin.html:21
+msgid "Yes"
+msgstr "Yes"
+
+#: templates/admin.html:21
+msgid "No"
+msgstr "No"
+
+#: templates/admin.html:23
+msgid "Edit"
+msgstr "Edit"
+
+#: templates/admin.html:25
+msgid "Delete"
+msgstr "Delete"
+
+#: templates/base.html:6 templates/base.html:60
+msgid "Farm Shop"
+msgstr "Farm Shop"
+
+# -----------------------------
+# Common UI elements
+#: templates/base.html:16
+msgid "Language"
+msgstr "Language"
+
+#: templates/base.html:32
+#, fuzzy
+msgid "🌾 Farm Shop"
+msgstr "Farm Shop"
+
+#: templates/base.html:36
+msgid "Admin"
+msgstr "Admin"
+
+#: templates/base.html:37
+msgid "Logout"
+msgstr "Logout"
+
+#: templates/base.html:39
+msgid "Login"
+msgstr "Login"
+
+#: templates/base.html:60
+msgid "All rights reserved."
+msgstr ""
+
+#: templates/contact.html:5
+msgid "Contact About"
+msgstr "Contact About"
+
+#: templates/contact.html:10
+msgid "Your Name"
+msgstr "Your Name"
+
+#: templates/contact.html:15
+msgid "Message"
+msgstr "Message"
+
+#: templates/contact.html:21
+msgid "Send Message"
+msgstr "Send Message"
+
+#: templates/item.html:9
+msgid "Main image of"
+msgstr ""
+
+#: templates/item.html:18
+msgid "Gallery image"
+msgstr ""
+
+#: templates/item.html:35
+msgid "Status"
+msgstr ""
+
+#: templates/item.html:39
+msgid "Out of Stock"
+msgstr ""
+
+#: templates/item.html:46
+#, fuzzy
+msgid "Contact Advertiser"
+msgstr "Contact About"
+
+#~ msgid "English"
+#~ msgstr "English"
+
+#~ msgid "Português"
+#~ msgstr "Português"
+
+#~ msgid "Save"
+#~ msgstr "Save"
+
+#~ msgid "Cancel"
+#~ msgstr "Cancel"
+
+#~ msgid "You must be logged in to access this page."
+#~ msgstr "You must be logged in to access this page."
+
+#~ msgid "An error occurred. Please try again."
+#~ msgstr "An error occurred. Please try again."
+
+#~ msgid "No items available at the moment."
+#~ msgstr "No items available at the moment."
+
+#~ msgid "Back to Home"
+#~ msgstr "Back to Home"
+

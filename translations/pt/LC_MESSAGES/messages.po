@@ -1,0 +1,225 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: Farm Shop 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-31 18:47+0000\n"
+"PO-Revision-Date: 2025-10-31 00:00+0000\n"
+"Last-Translator: Julio <you@example.com>\n"
+"Language: pt\n"
+"Language-Team: Portuguese\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: app.py:170
+msgid "Please log in first."
+msgstr ""
+
+#: app.py:277 app.py:373
+msgid "Item not found."
+msgstr ""
+
+#: app.py:293
+msgid "Your message has been sent successfully!"
+msgstr ""
+
+#: app.py:307
+#, fuzzy
+msgid "Logged in successfully!"
+msgstr "Sessão iniciada com sucesso!"
+
+#: app.py:310
+#, fuzzy
+msgid "Invalid password."
+msgstr "Nome de utilizador ou palavra-passe inválidos."
+
+#: app.py:316
+msgid "You have been logged out."
+msgstr ""
+
+# -----------------------------
+# Messages & feedback
+#: app.py:330 app.py:357
+msgid "Item added successfully!"
+msgstr "Artigo adicionado com sucesso!"
+
+#: app.py:386
+#, fuzzy
+msgid "Invalid price format."
+msgstr "Nome de utilizador ou palavra-passe inválidos."
+
+#: app.py:454
+msgid "Item updated successfully!"
+msgstr "Artigo atualizado com sucesso!"
+
+#: app.py:496
+msgid "Item deleted."
+msgstr "Artigo eliminado."
+
+#: templates/add_item.html:3
+msgid "Welcome to the Farm Shop!"
+msgstr ""
+
+#: templates/add_item.html:4
+msgid "Browse or add items below."
+msgstr ""
+
+#: templates/add_item.html:5 templates/admin.html:6
+msgid "Add New Item"
+msgstr "Adicionar Novo Artigo"
+
+#: templates/add_item.html:11
+#, fuzzy
+msgid "Price:"
+msgstr "Preço"
+
+#: templates/add_item.html:15 templates/admin.html:13 templates/item.html:37
+msgid "Available"
+msgstr "Disponível"
+
+#: templates/add_item.html:17
+msgid "Upload up to 10 images (drag to reorder; first = main):"
+msgstr ""
+
+#: templates/add_item.html:27
+#, fuzzy
+msgid "Add Item"
+msgstr "Adicionar Novo Artigo"
+
+#: templates/add_item.html:30
+#, fuzzy
+msgid "Back to Admin Panel"
+msgstr "Painel de Administração"
+
+#: templates/admin.html:4
+msgid "Admin Panel"
+msgstr "Painel de Administração"
+
+# -----------------------------
+# Item fields
+#: templates/admin.html:10
+msgid "Title"
+msgstr "Título"
+
+#: templates/admin.html:11 templates/item.html:30
+msgid "Price"
+msgstr "Preço"
+
+#: templates/admin.html:12
+msgid "Category"
+msgstr "Categoria"
+
+#: templates/admin.html:14
+msgid "Actions"
+msgstr "Ações"
+
+#: templates/admin.html:21
+msgid "Yes"
+msgstr "Sim"
+
+#: templates/admin.html:21
+msgid "No"
+msgstr "Não"
+
+#: templates/admin.html:23
+msgid "Edit"
+msgstr "Editar"
+
+#: templates/admin.html:25
+msgid "Delete"
+msgstr "Eliminar"
+
+#: templates/base.html:6 templates/base.html:60
+msgid "Farm Shop"
+msgstr "Loja Rural"
+
+# -----------------------------
+# Common UI elements
+#: templates/base.html:16
+msgid "Language"
+msgstr "Idioma"
+
+#: templates/base.html:32
+#, fuzzy
+msgid "🌾 Farm Shop"
+msgstr "Loja Rural"
+
+#: templates/base.html:36
+msgid "Admin"
+msgstr "Administrador"
+
+#: templates/base.html:37
+msgid "Logout"
+msgstr "Terminar sessão"
+
+#: templates/base.html:39
+msgid "Login"
+msgstr "Iniciar sessão"
+
+#: templates/base.html:60
+msgid "All rights reserved."
+msgstr ""
+
+#: templates/contact.html:5
+msgid "Contact About"
+msgstr "Contactar sobre"
+
+#: templates/contact.html:10
+msgid "Your Name"
+msgstr "O Seu Nome"
+
+#: templates/contact.html:15
+msgid "Message"
+msgstr "Mensagem"
+
+#: templates/contact.html:21
+msgid "Send Message"
+msgstr "Enviar Mensagem"
+
+#: templates/item.html:9
+msgid "Main image of"
+msgstr "Imagem principal de"
+
+#: templates/item.html:18
+msgid "Gallery image"
+msgstr "Imagem da galeria"
+
+#: templates/item.html:35
+msgid "Status"
+msgstr "Estado"
+
+#: templates/item.html:39
+msgid "Out of Stock"
+msgstr "Esgotado"
+
+#: templates/item.html:46
+msgid "Contact Advertiser"
+msgstr "Contactar Anunciante"
+
+#~ msgid "English"
+#~ msgstr "Inglês"
+
+#~ msgid "Português"
+#~ msgstr "Português"
+
+#~ msgid "Save"
+#~ msgstr "Guardar"
+
+#~ msgid "Cancel"
+#~ msgstr "Cancelar"
+
+#~ msgid "You must be logged in to access this page."
+#~ msgstr "Deve iniciar sessão para aceder a esta página."
+
+#~ msgid "An error occurred. Please try again."
+#~ msgstr "Ocorreu um erro. Tente novamente."
+
+#~ msgid "No items available at the moment."
+#~ msgstr "Nenhum artigo disponível no momento."
+
+#~ msgid "Back to Home"
+#~ msgstr "Voltar à Página Inicial"
+

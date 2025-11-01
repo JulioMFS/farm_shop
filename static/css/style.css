@@ -1,0 +1,388 @@
+/* =====================
+   Base Styles
+   ===================== */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f9f9f9;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #2c3e50;
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
+
+.container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* =====================
+   Grid & Cards
+   ===================== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  align-items: stretch; /* all cards same height */
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  text-align: center;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  max-width: 250px;
+  height: 400px; /* fixed card height */
+  margin: 0 auto;
+  position: relative;
+  transition: transform 0.2s; /* subtle zoom effect */
+}
+
+.card:hover {
+  transform: translateY(-4px); /* slight lift on hover */
+}
+
+.card img {
+  width: 100%;
+  height: 180px;      /* uniform image height */
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  margin-bottom: 0.5rem;
+  transition: transform 0.3s ease; /* smooth zoom */
+}
+
+.card:hover img {
+  transform: scale(1.05); /* zoom in image on hover */
+}
+
+.card h3 {
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
+}
+
+.card p {
+  flex: 1;             /* take remaining space */
+  overflow-y: auto;    /* scroll if text too long */
+  text-align: left;
+  font-size: 0.9rem;
+  margin: 0.25rem 0;
+  padding-right: 4px;  /* for scrollbar spacing */
+}
+
+.card a.button {
+  margin-top: 0.5rem;
+}
+
+.card .badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+/* =====================
+   Buttons & Inputs
+   ===================== */
+button, a.button, input[type=submit] {
+  background: #27ae60;
+  color: white;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover, a.button:hover, input[type=submit]:hover {
+  background: #1e8449;
+}
+
+input, textarea {
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+/* =====================
+   Search Bar
+   ===================== */
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-bar input, .search-bar select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  flex: 1;
+}
+
+.search-bar button {
+  padding: 8px 14px;
+  background: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.search-bar button:hover {
+  background: #27ae60;
+}
+
+/* =====================
+   Admin Add/Edit Previews
+   ===================== */
+#existing-preview, #new-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#existing-preview div, #new-preview div {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  text-align: center;
+}
+
+#existing-preview div img, #new-preview div img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+  margin: 0 auto;
+  transition: transform 0.2s ease; /* optional hover zoom */
+}
+
+#existing-preview div img:hover,
+#new-preview div img:hover {
+  transform: scale(1.05);
+}
+
+/* =====================
+   Progress Bar
+   ===================== */
+#progress-container {
+  width: 100%;
+  max-width: 500px;
+  background: #eee;
+  border-radius: 6px;
+  margin-top: 10px;
+  display: none;
+}
+
+#progress-bar {
+  width: 0%;
+  height: 20px;
+  background: green;
+  border-radius: 6px;
+}
+
+#progress-text {
+  margin-top: 5px;
+  font-size: 0.9em;
+  color: #333;
+}
+
+/* =====================
+   Form Inputs & Buttons
+   ===================== */
+form#add-item-form input[type="text"],
+form#add-item-form textarea,
+form#edit-item-form input[type="text"],
+form#edit-item-form textarea {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+form#add-item-form input[type="checkbox"],
+form#edit-item-form input[type="checkbox"] {
+  margin-right: 6px;
+}
+
+form#add-item-form button,
+form#edit-item-form button {
+  background: #27ae60;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+form#add-item-form button:hover,
+form#edit-item-form button:hover {
+  background: #1e8449;
+}
+
+/* =====================
+   Responsive Design
+   ===================== */
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .grid .card {
+    max-width: 100%;
+    height: auto; /* flexible height for small screens */
+  }
+
+  .grid .card img {
+    height: 160px;
+  }
+
+  .search-bar {
+    flex-direction: column;
+  }
+
+  .search-bar input, .search-bar select, .search-bar button {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  #existing-preview, #new-preview {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #existing-preview div, #new-preview div {
+    width: 100%;
+    height: auto;
+  }
+
+  #existing-preview div img, #new-preview div img {
+    width: 100%;
+    height: auto;
+    max-width: 200px;
+    margin-bottom: 10px;
+  }
+}
+.loader-container {
+    text-align: center;
+    padding: 3em;
+}
+
+.progress-bar {
+    width: 80%;
+    margin: 1em auto;
+    background: #ddd;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 20px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #52b788, #40916c);
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+
+.hidden {
+    display: none;
+}
+.loader-container {
+    text-align: center;
+    padding: 3em;
+}
+
+.progress-bar {
+    width: 80%;
+    margin: 1em auto;
+    background: #ddd;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 20px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #52b788, #40916c);
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+
+.hidden {
+    display: none;
+}
+.image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1em;
+    padding: 2em;
+}
+
+.image-gallery img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease;
+}
+
+.image-gallery img:hover {
+    transform: scale(1.05);
+}
+
+.loader-container {
+    text-align: center;
+    padding: 3em;
+}
+
+.progress-bar {
+    width: 80%;
+    margin: 1em auto;
+    background: #ddd;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 20px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #52b788, #40916c);
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+
+.hidden {
+    display: none;
+}
+.price {
+  font-weight: bold;
+  color: #28a745;
+  margin-top: 4px;
+}
