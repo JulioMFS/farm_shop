@@ -1,10 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Admin Login</h2>
-<form method="post">
-  <input type="password" name="password" placeholder="Enter password" required>
-  <button type=_("submit")>Login</button>
-</form>
-<p>You will stay logged in until you log out or close your browser.</p>
-<a href="{{ url_for('index') }}">Back to shop</a>
+<div class="max-w-md mx-auto bg-white rounded-2xl shadow-md p-8 mt-10 border border-gray-200">
+  <h2 class="text-2xl font-bold text-center text-green-700 mb-6">
+    {{ _("🔐 Admin Login") }}
+  </h2>
+
+  <form method="post" class="space-y-4">
+    <div>
+      <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+        {{ _("Password") }}
+      </label>
+      <input type="password" id="password" name="password"
+             placeholder="{{ _('Enter password') }}"
+             required
+             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none">
+    </div>
+
+    <button type="submit"
+            class="w-full bg-green-600 text-white font-semibold py-2 rounded-lg shadow hover:bg-green-700 transition">
+      {{ _("Login") }}
+    </button>
+  </form>
+
+  <p class="text-gray-600 text-sm mt-4 text-center">
+    {{ _("You will stay logged in until you log out or close your browser.") }}
+  </p>
+
+  <div class="text-center mt-6">
+    <a href="{{ url_for('index') }}"
+       class="inline-flex items-center gap-2 text-green-700 font-medium hover:underline">
+      🌾 {{ _("Back to shop") }}
+    </a>
+  </div>
+</div>
 {% endblock %}

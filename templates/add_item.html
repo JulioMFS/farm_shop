@@ -1,105 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ _("Welcome to the Farm Shop!") }}</h1>
-<p>{{ _("Browse or add items below.") }}</p>
-<h2>{{ _("Add New Item") }}</h2>
 
-<form id="add-item-form" action="{{ url_for('add_item') }}" method="post" enctype="multipart/form-data">
-  <input type="text" name="title" placeholder="Title" required>
-  <textarea name="description" placeholder="Description" required></textarea>
+<div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-md p-8 mt-8">
+  <h2 class="text-2xl font-semibold text-gray-800 mb-6">➕ {{ _('Add New Item') }}</h2>
 
-  <label>{{ _("Price:") }}</label>
-  <input type="text" name="price" placeholder="0.00" pattern="[\d.,]+" title="Enter a number in your locale" required>
+  <form id="itemForm" method="POST" enctype="multipart/form-data"
+        action="{{ url_for('add_item') }}" class="space-y-6">
 
-  <input type="text" name="category" placeholder="Category">
-  <input type="checkbox" name="available" checked> {{ _("Available") }}
+    {% include 'item_form_fields.html' %}
 
-  <label>{{ _("Upload up to 10 images (drag to reorder; first = main):") }}</label>
-  <input type="file" name="images" id="images-input" accept="image/*" multiple required>
+    <div class="flex justify-between items-center pt-6">
+      <a href="{{ url_for('items') }}"
+         class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition">
+        ← {{ _('Back to list') }}
+      </a>
 
-  <div id="new-preview"></div>
+      <button type="submit"
+              class="inline-flex items-center px-6 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition shadow-sm">
+        💾 {{ _('Save Item') }}
+      </button>
+    </div>
+  </form>
+</div>
 
-  <div id="progress-container">
-    <div id="progress-bar"></div>
-  </div>
-  <p id="progress-text"></p>
-
-  <button type="submit">{{ _("Add Item") }}</button>
-</form>
-
-<p><a href="{{ url_for('admin_panel') }}">{{ _("Back to Admin Panel") }}</a></p>
-
-<script nonce="{{ csp_nonce() }}">
-const form = document.getElementById('add-item-form');
-const input = document.getElementById('images-input');
-const preview = document.getElementById('new-preview');
-const progressContainer = document.getElementById('progress-container');
-const progressBar = document.getElementById('progress-bar');
-const progressText = document.getElementById('progress-text');
-
-let filesOrder = [];
-
-input.addEventListener('change', () => {
-    preview.innerHTML = '';
-    filesOrder = Array.from(input.files).slice(0, 10);
-    if (filesOrder.length > 10) {
-      alert("Maximum 10 images allowed!");
-      input.value = '';
-      filesOrder = [];
-      return;
-    }
-
-    filesOrder.forEach((file, i) => {
-        const reader = new FileReader();
-        reader.onload = e => {
-            const div = document.createElement('div');
-            div.draggable = true;
-
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            div.appendChild(img);
-            preview.appendChild(div);
-
-            div.addEventListener('dragstart', ev => {
-                ev.dataTransfer.setData('text/plain', i);
-            });
-            div.addEventListener('dragover', ev => ev.preventDefault());
-            div.addEventListener('drop', ev => {
-                ev.preventDefault();
-                const draggedIndex = parseInt(ev.dataTransfer.getData('text/plain'), 10);
-                const draggedDiv = preview.children[draggedIndex];
-                preview.insertBefore(draggedDiv, div);
-                filesOrder = Array.from(preview.children).map((child, idx) => filesOrder[idx]);
-            });
-        };
-        reader.readAsDataURL(file);
-    });
-});
-
-form.addEventListener('submit', function(e){
-    e.preventDefault();
-    if(filesOrder.length === 0){ alert("Please select at least one image."); return; }
-
-    const formData = new FormData(form);
-    filesOrder.forEach(f => formData.append('images', f));
-
-    const xhr = new XMLHttpRequest();
-    xhr.upload.addEventListener('progress', e => {
-        if(e.lengthComputable){
-            const percent = Math.round((e.loaded / e.total) * 100);
-            progressContainer.style.display = 'block';
-            progressBar.style.width = percent + '%';
-            progressText.textContent = percent + '% uploaded';
-        }
-    });
-    xhr.onreadystatechange = function(){
-        if(xhr.readyState === XMLHttpRequest.DONE){
-            progressText.textContent = xhr.status === 200 ? 'Upload complete!' : 'Upload failed.';
-            if(xhr.status === 200) window.location.href = "{{ url_for('admin_panel') }}";
-        }
-    };
-    xhr.open('POST', form.action, true);
-    xhr.send(formData);
-});
-</script>
 {% endblock %}

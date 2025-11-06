@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Farm Shop 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-31 18:47+0000\n"
+"POT-Creation-Date: 2025-11-01 13:15+0000\n"
 "PO-Revision-Date: 2025-10-31 00:00+0000\n"
 "Last-Translator: Julio <you@example.com>\n"
 "Language: pt\n"
@@ -16,15 +16,15 @@ msgstr ""
 
 #: app.py:170
 msgid "Please log in first."
-msgstr ""
+msgstr "Por favor, faça login primeiro."
 
 #: app.py:277 app.py:373
 msgid "Item not found."
-msgstr ""
+msgstr "Item não encontrado."
 
 #: app.py:293
 msgid "Your message has been sent successfully!"
-msgstr ""
+msgstr "A sua mensagem foi enviada com sucesso!"
 
 #: app.py:307
 #, fuzzy
@@ -38,7 +38,7 @@ msgstr "Nome de utilizador ou palavra-passe inválidos."
 
 #: app.py:316
 msgid "You have been logged out."
-msgstr ""
+msgstr "Você foi desconectado."
 
 # -----------------------------
 # Messages & feedback
@@ -61,11 +61,11 @@ msgstr "Artigo eliminado."
 
 #: templates/add_item.html:3
 msgid "Welcome to the Farm Shop!"
-msgstr ""
+msgstr "Bem-vindo à Loja da Quinta!"
 
 #: templates/add_item.html:4
 msgid "Browse or add items below."
-msgstr ""
+msgstr "Navegue ou adicione itens abaixo."
 
 #: templates/add_item.html:5 templates/admin.html:6
 msgid "Add New Item"
@@ -82,7 +82,7 @@ msgstr "Disponível"
 
 #: templates/add_item.html:17
 msgid "Upload up to 10 images (drag to reorder; first = main):"
-msgstr ""
+msgstr "Carregue até 10 imagens (arraste para reordenar; a primeira = principal):"
 
 #: templates/add_item.html:27
 #, fuzzy
@@ -145,7 +145,7 @@ msgstr "Idioma"
 #: templates/base.html:32
 #, fuzzy
 msgid "🌾 Farm Shop"
-msgstr "Loja Rural"
+msgstr "🌾 Loja Rural"
 
 #: templates/base.html:36
 msgid "Admin"
@@ -161,7 +161,7 @@ msgstr "Iniciar sessão"
 
 #: templates/base.html:60
 msgid "All rights reserved."
-msgstr ""
+msgstr "Todos os direitos reservados."
 
 #: templates/contact.html:5
 msgid "Contact About"
@@ -178,6 +178,10 @@ msgstr "Mensagem"
 #: templates/contact.html:21
 msgid "Send Message"
 msgstr "Enviar Mensagem"
+
+#: templates/index.html:3
+msgid "Our Products"
+msgstr "Os Nossos Produtos"
 
 #: templates/item.html:9
 msgid "Main image of"
@@ -223,3 +227,58 @@ msgstr "Contactar Anunciante"
 #~ msgid "Back to Home"
 #~ msgstr "Voltar à Página Inicial"
 
+msgid "Admin Login"
+msgstr "Login de Administrador"
+
+msgid "Password"
+msgstr "Palavra-passe"
+
+msgid "Enter password"
+msgstr "Introduza a palavra-passe"
+
+msgid "Login"
+msgstr "Iniciar sessão"
+
+msgid "You will stay logged in until you log out or close your browser."
+msgstr "Permanecerá autenticado até terminar a sessão ou fechar o navegador."
+
+msgid "Back to shop"
+msgstr "Voltar à loja"
+msgid "Admin Panel"
+msgstr "Painel de Administração"
+
+msgid "Add New Item"
+msgstr "Adicionar Novo Artigo"
+
+msgid "Title"
+msgstr "Título"
+
+msgid "Price"
+msgstr "Preço"
+
+msgid "Category"
+msgstr "Categoria"
+
+msgid "Available"
+msgstr "Disponível"
+
+msgid "Actions"
+msgstr "Ações"
+
+msgid "Yes"
+msgstr "Sim"
+
+msgid "No"
+msgstr "Não"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "Are you sure you want to delete this item?"
+msgstr "Tem a certeza de que deseja eliminar este artigo?"
+
+msgid "No items available."
+msgstr "Nenhum artigo disponível."

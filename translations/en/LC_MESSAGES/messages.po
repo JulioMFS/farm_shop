@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Farm Shop 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-31 18:47+0000\n"
+"POT-Creation-Date: 2025-11-01 13:15+0000\n"
 "PO-Revision-Date: 2025-10-31 00:00+0000\n"
 "Last-Translator: Julio <you@example.com>\n"
 "Language: en\n"
@@ -178,6 +178,10 @@ msgstr "Message"
 #: templates/contact.html:21
 msgid "Send Message"
 msgstr "Send Message"
+
+#: templates/index.html:3
+msgid "Our Products"
+msgstr ""
 
 #: templates/item.html:9
 msgid "Main image of"
