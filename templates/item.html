@@ -2,22 +2,40 @@
 {% block content %}
 <div class="max-w-4xl mx-auto bg-white shadow rounded-xl p-6">
 
-  <!-- Main Image -->
+  <!-- Main Media -->
   {% if gallery %}
-    <img id="main_image"
-         src="{{ url_for('static', filename=gallery[0].filename) }}"
-         alt="{{ _('Main image of') }} {{ item.title }}"
-         class="w-full h-96 object-contain rounded-lg mb-6 border border-gray-300">
+    <div id="main_media_container">
+      {% set main = gallery[0] %}
+      {% if main.filename.endswith(('.mp4', '.webm', '.mov')) %}
+        <video id="main_media" controls class="w-full h-96 rounded-lg border mb-6">
+          <source src="{{ url_for('static', filename='images/full/' ~ main.filename) }}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      {% else %}
+        <img id="main_media" src="{{ url_for('static', filename='images/full/' ~ main.filename) }}"
+             alt="{{ _('Main media of') }} {{ item.title }}"
+             class="w-full h-96 object-contain rounded-lg mb-6 border border-gray-300">
+      {% endif %}
+    </div>
   {% endif %}
 
   <!-- Thumbnails -->
   {% if gallery|length > 1 %}
     <div class="flex flex-wrap gap-4 mb-6">
       {% for img in gallery %}
-        <img src="{{ url_for('static', filename=img.filename) }}"
-             alt="{{ _('Gallery image') }} {{ loop.index }}"
-             class="w-24 h-24 object-cover rounded-lg border border-gray-300 cursor-pointer thumbnail"
-             data-full="{{ url_for('static', filename=img.filename) }}">
+        {% if img.filename.endswith(('.mp4', '.webm', '.mov')) %}
+          <video class="w-24 h-24 rounded border cursor-pointer thumbnail"
+                 data-full="{{ url_for('static', filename='images/full/' ~ img.filename) }}"
+                 data-type="video" muted>
+            <source src="{{ url_for('static', filename='images/full/' ~ img.filename) }}" type="video/mp4">
+          </video>
+        {% else %}
+          <img src="{{ url_for('static', filename='images/thumbs/' ~ img.thumb or img.filename) }}"
+               alt="{{ _('Gallery image') }} {{ loop.index }}"
+               class="w-24 h-24 object-cover rounded-lg border cursor-pointer thumbnail"
+               data-full="{{ url_for('static', filename='images/full/' ~ img.filename) }}"
+               data-type="image">
+        {% endif %}
       {% endfor %}
     </div>
   {% endif %}
@@ -43,18 +61,35 @@
   <!-- Contact Button -->
   <a href="{{ url_for('contact', item_id=item.id) }}"
      class="inline-block bg-green-700 text-white px-5 py-2 rounded-lg hover:bg-green-800 transition">
-    📩 {{ _('Contact Advertiser') }}
+     📩 {{ _('Contact Advertiser') }}
   </a>
 </div>
 
 <script nonce="{{ csp_nonce() }}">
 document.addEventListener("DOMContentLoaded", () => {
-  const mainImage = document.getElementById("main_image");
+  const mainContainer = document.getElementById("main_media_container");
   const thumbnails = document.querySelectorAll(".thumbnail");
 
   thumbnails.forEach(thumb => {
     thumb.addEventListener("click", () => {
-      mainImage.src = thumb.dataset.full;
+      const type = thumb.dataset.type;
+      const src = thumb.dataset.full;
+
+      mainContainer.innerHTML = "";
+
+      if (type === "video") {
+        const video = document.createElement("video");
+        video.src = src;
+        video.controls = true;
+        video.className = "w-full h-96 rounded-lg border mb-6";
+        mainContainer.appendChild(video);
+      } else {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = "{{ _('Main media of') }} {{ item.title }}";
+        img.className = "w-full h-96 object-contain rounded-lg mb-6 border border-gray-300";
+        mainContainer.appendChild(img);
+      }
     });
   });
 });

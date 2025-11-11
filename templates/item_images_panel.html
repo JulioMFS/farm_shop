@@ -1,0 +1,22 @@
+<div>
+  <label class="block font-medium text-gray-700 mb-2">{{ _("Images") }}</label>
+
+  <div id="drop-area"
+       class="border-2 border-dashed border-gray-400 rounded-lg p-6 text-center cursor-pointer hover:border-green-500 transition">
+    <p>{{ _("Drag & drop images here or click to select") }}</p>
+    <input type="file" id="new_images" name="new_images" multiple accept="image/*" class="hidden">
+  </div>
+
+  <div id="image-preview-container"
+       class="flex flex-wrap gap-4 border p-4 rounded-lg bg-gray-50 min-h-[120px] mt-4">
+  </div>
+
+  <button type="button" id="deleteSelectedBtn"
+          class="mt-3 px-3 py-1 bg-red-600 text-white rounded shadow hover:bg-red-700 transition hidden">
+    {{ _("Delete Selected") }}
+  </button>
+
+  <input type="hidden" id="main_image" name="main_image" value="{{ item.main_image if item else '' }}">
+  <input type="hidden" id="image_order" name="image_order">
+  <input type="hidden" id="delete_list" name="delete_list" value="[]">
+</div>

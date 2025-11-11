@@ -2,25 +2,25 @@
 {% block content %}
 
 <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-md p-8 mt-8">
-  <h2 class="text-2xl font-semibold text-gray-800 mb-6">➕ {{ _('Add New Item') }}</h2>
+  <h2 class="text-2xl font-semibold text-gray-800 mb-6">{{ _('Add New Item') }}</h2>
 
-  <form id="itemForm" method="POST" enctype="multipart/form-data"
-        action="{{ url_for('add_item') }}" class="space-y-6">
+  <form id="itemForm" method="POST" enctype="multipart/form-data" action="{{ url_for('add_item') }}" class="space-y-6">
 
     {% include 'item_form_fields.html' %}
 
     <div class="flex justify-between items-center pt-6">
-      <a href="{{ url_for('items') }}"
-         class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition">
+      <a href="{{ url_for('items') }}" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition">
         ← {{ _('Back to list') }}
       </a>
 
-      <button type="submit"
-              class="inline-flex items-center px-6 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition shadow-sm">
+      <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
         💾 {{ _('Save Item') }}
       </button>
     </div>
+
   </form>
 </div>
+
+{% include 'image_drag_logic.html' %}
 
 {% endblock %}

@@ -1,0 +1,81 @@
+<script nonce="{{ csp_nonce() }}">
+const dropZone = document.getElementById("drop-zone");
+const fileInput = document.getElementById("new_images");
+const container = document.getElementById("image-preview-container");
+const mainInput = document.getElementById("main_image");
+const imageOrderInput = document.getElementById("image_order");
+
+// Initialize existing media
+if (!window.existingImages) window.existingImages = [];
+
+// Drop & Click events
+dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("border-green-500"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("border-green-500"));
+dropZone.addEventListener("drop", e => { e.preventDefault(); dropZone.classList.remove("border-green-500"); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener("change", e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  [...files].forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const id = "new_" + crypto.randomUUID();
+      const type = file.type.startsWith("video/") ? "video" : "image";
+      window.existingImages.push({ id, thumb: reader.result, type, filename: file.name });
+      renderImages();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderImages() {
+  container.innerHTML = "";
+  window.existingImages.forEach(media => {
+    let el;
+    if (media.type === "video") {
+      el = document.createElement("video");
+      el.src = media.thumb;
+      el.width = 128;
+      el.height = 128;
+      el.controls = true;
+      el.muted = true;
+      el.className = "rounded border shadow-sm cursor-move";
+    } else {
+      el = document.createElement("div");
+      el.className = "w-32 h-32 relative cursor-move";
+      const img = document.createElement("img");
+      img.src = media.thumb;
+      img.className = "w-full h-full object-cover rounded border shadow-sm";
+      const star = document.createElement("div");
+      star.className = "absolute top-1 left-1 text-sm px-1 bg-black/50 text-yellow-400 rounded";
+      star.textContent = "★";
+      el.appendChild(img);
+      el.appendChild(star);
+    }
+    el.draggable = true;
+    el.dataset.id = media.id;
+    container.appendChild(el);
+    enableDragging(el);
+  });
+
+  updateOrder();
+}
+
+let drag = null;
+function enableDragging(el) {
+  el.addEventListener("dragstart", () => drag = el);
+  el.addEventListener("dragover", e => e.preventDefault());
+  el.addEventListener("drop", () => {
+    if (drag && drag !== el) container.insertBefore(drag, el);
+    updateOrder();
+  });
+}
+
+function updateOrder() {
+  const ids = [...container.children].map(el => el.dataset.id);
+  imageOrderInput.value = JSON.stringify(ids);
+  mainInput.value = ids[0] || "";
+}
+
+renderImages();
+</script>

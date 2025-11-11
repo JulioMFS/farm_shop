@@ -6,12 +6,16 @@
   {% for item in items %}
   <div class="bg-white rounded-xl shadow hover:shadow-lg transition">
     <a href="{{ url_for('item', item_id=item.id) }}">
-      <img src="{{ url_for('static', filename=item.main_image) }}" alt="{{ item.title }}"
-           class="w-full h-48 object-cover rounded-t-xl">
+      <img src="{{ url_for('static', filename='images/' ~ item.main_image) }}"
+           alt="{{ item.title }}"
+           loading="lazy"
+           class="w-full h-48 object-cover rounded-t-xl"
+           id="img-{{ item.id }}">
       <div class="p-4 text-center">
         <h3 class="text-lg font-semibold text-green-800">{{ item.title }}</h3>
       </div>
-      {% if item.price %}
+
+      {% if item.price is not none %}
         <p class="price">Price: {{ "%.2f"|format(item.price) }} €</p>
       {% else %}
         <p class="price">Price: N/A</p>
@@ -20,4 +24,15 @@
   </div>
   {% endfor %}
 </div>
+
+<script nonce="{{ g.nonce }}">
+document.addEventListener("DOMContentLoaded", function() {
+  const images = document.querySelectorAll("img[id^='img-']");
+  images.forEach(img => {
+    img.onerror = function() {
+      this.src = "{{ url_for('static', filename='images/no-image.png') }}";
+    };
+  });
+});
+</script>
 {% endblock %}
