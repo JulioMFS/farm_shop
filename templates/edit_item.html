@@ -52,7 +52,7 @@ const delete_list = document.getElementById("delete_list");
 window.existingImages = [];
 {% for img in gallery %}
   window.existingImages.push({
-    id: "{{ img.id }}",
+    id: "{{ img.id_ui }}",
     type: "{{ 'video' if img.filename.endswith(('.mp4','.webm','.mov')) else 'image' }}",
     filename: "{{ img.filename }}",
     thumb: "{{ img.thumb }}"

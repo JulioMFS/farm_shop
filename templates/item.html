@@ -12,7 +12,7 @@
           Your browser does not support the video tag.
         </video>
       {% else %}
-        <img id="main_media" src="{{ url_for('static', filename='images/full/' ~ main.filename) }}"
+        <img id="main_media" src="{{ url_for('static', filename='images/' ~ main.filename) }}"
              alt="{{ _('Main media of') }} {{ item.title }}"
              class="w-full h-96 object-contain rounded-lg mb-6 border border-gray-300">
       {% endif %}
