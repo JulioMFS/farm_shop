@@ -10,6 +10,8 @@ from functools import wraps
 import mysql.connector
 from PIL import Image
 import uuid
+from werkzeug.utils import secure_filename
+
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -28,12 +30,11 @@ ALLOWED_VIDEO_EXTENSIONS = ('.mp4', '.webm', '.mov')
 app.secret_key = "secret123"
 Talisman(app, content_security_policy=None)
 
-
-UPLOAD_FOLDER = "static/images"
+UPLOAD_FOLDER = os.path.join(app.static_folder, "images")
+THUMB_FOLDER = os.path.join(app.static_folder, "images", "thumbs")
+THUMB_SIZE = (400, 400)  # adjust as needed
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-THUMB_FOLDER = "static/images/thumbs"
 os.makedirs(THUMB_FOLDER, exist_ok=True)
-THUMB_SIZE = (300, 300)
 ADMIN_PASSWORD = "admin123"
 
 # -----------------------------------------------------------------------------
@@ -54,6 +55,50 @@ def get_db():
         database=app.config["MYSQL_DATABASE"]
     )
     return conn
+
+def delete_image_by_id(image_id):
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    cur.execute("SELECT * FROM item_images WHERE id=%s", (image_id,))
+    image = cur.fetchone()
+    if not image:
+        cur.close()
+        conn.close()
+        return False
+
+    item_id = image["item_id"]
+    filename = image["filename"]
+    thumb = image.get("thumb")
+
+    # Delete physical files
+    full_path = os.path.join(app.static_folder, "images", "full", filename)
+    thumb_path = os.path.join(app.static_folder, "images", "thumbs", thumb) if thumb else None
+    for path in [full_path, thumb_path]:
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"⚠️ Could not remove file {path}: {e}")
+
+    # Delete DB row
+    cur.execute("DELETE FROM item_images WHERE id=%s", (image_id,))
+
+    # Update main image if necessary
+    cur.execute("SELECT main_image FROM items WHERE id=%s", (item_id,))
+    item = cur.fetchone()
+    if item and item["main_image"] and os.path.basename(item["main_image"]) == filename:
+        cur.execute("""
+            SELECT filename FROM item_images WHERE item_id=%s ORDER BY id ASC LIMIT 1
+        """, (item_id,))
+        new_main = cur.fetchone()
+        new_main_path = f"images/full/{new_main['filename']}" if new_main else None
+        cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (new_main_path, item_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return True
 
 @app.teardown_appcontext
 def close_db(exception):
@@ -100,35 +145,40 @@ def ensure_display_order_column():
 
 init_db()
 
-def save_file(file_storage):
-    """
-    Save uploaded file.
-    - Images: generate thumbnail (WebP)
-    - Videos: just save the file
-    Returns: dict with keys: type ('image'/'video'), filename, thumb (None for videos)
-    """
-    ext = os.path.splitext(file_storage.filename)[1].lower()
-    uid = str(uuid.uuid4())
-    filename = f"{uid}{ext}"
-    full_path = os.path.join(UPLOAD_FOLDER, filename)
+import shutil
 
-    file_storage.save(full_path)
+def save_file(file):
+    """Save an uploaded file and create a thumbnail. Returns dict with filename and thumb."""
+    # Ensure folders exist
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(THUMB_FOLDER, exist_ok=True)
 
-    if ext in ALLOWED_IMAGE_EXTENSIONS:
-        # Generate thumbnail
-        img = Image.open(full_path)
-        img.thumbnail((420, 420))
-        thumb_filename = f"{uid}.webp"
-        thumb_path = os.path.join(THUMB_FOLDER, thumb_filename)
-        img.save(thumb_path, "WEBP", quality=80)
-        return {"type": "image", "filename": filename, "thumb": thumb_filename}
+    # --- Normalize filename ---
+    ext = os.path.splitext(file.filename)[1].lower()
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(UPLOAD_FOLDER, unique_name)
 
-    elif ext in ALLOWED_VIDEO_EXTENSIONS:
-        # Videos: no thumbnail for now
-        return {"type": "video", "filename": filename, "thumb": None}
+    # --- Save file ---
+    file.save(file_path)
 
-    else:
-        raise ValueError(f"Unsupported file type: {ext}")
+    # --- Generate thumbnail ---
+    thumb_path = os.path.join(THUMB_FOLDER, unique_name)
+    try:
+        # Try to open as image
+        with Image.open(file_path) as img:
+            img.thumbnail(THUMB_SIZE)
+            img.save(thumb_path)
+    except Exception:
+        # If not an image (e.g., video), just copy the file placeholder
+        shutil.copy(file_path, thumb_path)
+
+    # Return only filenames (relative paths are handled in templates)
+    return {
+        "filename": unique_name,
+        "thumb": os.path.relpath(thumb_path, UPLOAD_FOLDER)
+    }
+
+
 
 def save_image_with_thumbnail(file):
     filename = file.filename
@@ -152,80 +202,145 @@ def save_image_with_thumbnail(file):
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
-
-def save_item_images(cur, conn, item_id, files, image_order_json, main_image_id):
-
-    # Convert ["item_49","item_50"] → [49,50]
-    def normalize_id(val):
-        if isinstance(val, str) and val.startswith("item_"):
-            return int(val.replace("item_", ""))
-        return val
-
-    # --- DELETE IMAGES ---
-    delete_list = json.loads(request.form.get("delete_list", "[]"))
-    delete_ids = [normalize_id(d) for d in delete_list]
-
-    for img_id in delete_ids:
-        # Get filename before deletion (to remove files)
-        cur.execute("SELECT filename, thumb FROM item_images WHERE id=%s", (img_id,))
-        row = cur.fetchone()
-        if row:
-            try:
-                os.remove(os.path.join("static/images/full", row["filename"]))
-                os.remove(os.path.join("static/images/thumbs", row["thumb"]))
-            except FileNotFoundError:
-                pass
-
-        cur.execute("DELETE FROM item_images WHERE id=%s", (img_id,))
-
-    # --- REORDER EXISTING IMAGES ---
-    order = json.loads(image_order_json) if image_order_json else []
-    order = [normalize_id(i) for i in order]
-
-    for sort_position, img_id in enumerate(order):
-        if isinstance(img_id, int):
-            cur.execute("UPDATE item_images SET sort_order=%s WHERE id=%s", (sort_position, img_id))
-
-    # --- SAVE NEW IMAGES ---
-    for file in files:
-        if not file.filename:
-            continue
-        filename = secure_filename(file.filename)
-        full_path = os.path.join("static/images/full", filename)
-        thumb_path = os.path.join("static/images/thumbs", filename)
-
-        file.save(full_path)
-
-        # Make thumbnail
-        try:
-            img = Image.open(full_path)
-            img.thumbnail((300, 300))
+def create_thumbnail(file_path):
+    """Create thumbnail and return thumbnail path"""
+    thumb_path = os.path.join(THUMB_FOLDER, os.path.basename(file_path))
+    try:
+        with Image.open(file_path) as img:
+            img.thumbnail(THUMB_SIZE)
             img.save(thumb_path)
-        except:
-            thumb_path = None
+    except Exception as e:
+        print("Thumbnail generation error:", e)
+    return thumb_path
 
-        # Insert new row
-        cur.execute(
-            "INSERT INTO item_images (item_id, filename, thumb, sort_order) VALUES (%s, %s, %s, %s)",
-            (item_id, filename, filename, len(order))
-        )
-        conn.commit()
+def add_images(cur, conn, item_id, files, main_index=None):
+    """Add new images and optionally set main image"""
+    saved_ids = []
+    main_image_filename = None
 
-        # Append to order list for next updates
-        cur.execute("SELECT LAST_INSERT_ID() AS id")
-        new_id = cur.fetchone()["id"]
-        order.append(new_id)
+    if main_index is not None and files:
+        cur.execute("UPDATE item_images SET is_main=0 WHERE item_id=%s", (item_id,))
 
-    # --- UPDATE MAIN IMAGE ---
-    if main_image_id:
-        main_image_id = normalize_id(main_image_id)
-        # Store actual numeric ID in DB
-        cur.execute("SELECT filename FROM item_images WHERE id=%s", (main_image_id,))
-        row = cur.fetchone()
-        if row:
-            return row["filename"]
+    for idx, file in enumerate(files):
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+        thumb_path = create_thumbnail(file_path)
 
-    return None
+        is_main = 1 if idx == main_index else 0
+        if is_main:
+            main_image_filename = filename
+
+        cur.execute("""
+            INSERT INTO item_images (item_id, filename, thumb, is_main)
+            VALUES (%s, %s, %s, %s)
+        """, (item_id, filename, thumb_path, is_main))
+        saved_ids.append(cur.lastrowid)
+
+    if main_image_filename:
+        cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (main_image_filename, item_id))
+
+    conn.commit()
+    return saved_ids
+
+def delete_image_by_id(cur, conn, image_id):
+    """Delete image and update main image if needed"""
+    cur.execute("SELECT item_id, filename, is_main FROM item_images WHERE id=%s", (image_id,))
+    row = cur.fetchone()
+    if not row:
+        return False
+    item_id, filename, is_main = row
+
+    # Remove files
+    for folder in [UPLOAD_FOLDER, THUMB_FOLDER]:
+        path = os.path.join(folder, filename)
+        if os.path.exists(path):
+            os.remove(path)
+
+    cur.execute("DELETE FROM item_images WHERE id=%s", (image_id,))
+
+    if is_main:
+        cur.execute("SELECT id, filename FROM item_images WHERE item_id=%s ORDER BY id ASC LIMIT 1", (item_id,))
+        new_main = cur.fetchone()
+        if new_main:
+            new_id, new_filename = new_main
+            cur.execute("UPDATE item_images SET is_main=1 WHERE id=%s", (new_id,))
+            cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (new_filename, item_id))
+        else:
+            cur.execute("UPDATE items SET main_image=NULL WHERE id=%s", (item_id,))
+
+    conn.commit()
+    return True
+
+def set_main_image(cur, conn, item_id, image_id):
+    cur.execute("SELECT filename FROM item_images WHERE id=%s AND item_id=%s", (image_id, item_id))
+    row = cur.fetchone()
+    if not row:
+        return False
+    filename = row[0]
+    cur.execute("UPDATE item_images SET is_main=0 WHERE item_id=%s", (item_id,))
+    cur.execute("UPDATE item_images SET is_main=1 WHERE id=%s", (image_id,))
+    cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (filename, item_id))
+    conn.commit()
+    return True
+
+def delete_image_by_id(image_id):
+    """
+    Delete an image (and its thumbnail) from both disk and database.
+    Automatically updates main_image if needed.
+    Returns True if deleted, False if not found.
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    # --- Find the image ---
+    cur.execute("SELECT id, item_id, filename, thumb FROM item_images WHERE id=%s", (image_id,))
+    image = cur.fetchone()
+    if not image:
+        cur.close()
+        conn.close()
+        return False
+
+    item_id = image["item_id"]
+    filename = image["filename"]
+    thumb = image.get("thumb")
+
+    # --- Delete files from disk ---
+    paths = [
+        os.path.join(app.static_folder, "images", "full", filename),
+        os.path.join(app.static_folder, "images", "thumbs", thumb) if thumb else None
+    ]
+    for path in paths:
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception as e:
+                print(f"⚠️ Could not remove file {path}: {e}")
+
+    # --- Remove from DB ---
+    cur.execute("DELETE FROM item_images WHERE id=%s", (image_id,))
+
+    # --- If it was the main image, assign a new one ---
+    cur.execute("SELECT main_image FROM items WHERE id=%s", (item_id,))
+    item = cur.fetchone()
+    if item and item["main_image"]:
+        current_main = os.path.basename(item["main_image"])
+        if current_main == filename:
+            cur.execute("""
+                SELECT filename FROM item_images
+                WHERE item_id=%s LIMIT 1
+            """, (item_id,))
+            next_img = cur.fetchone()
+            if next_img:
+                new_main = f"images/full/{next_img['filename']}"
+                cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (new_main, item_id))
+            else:
+                cur.execute("UPDATE items SET main_image=NULL WHERE id=%s", (item_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return True
 
 # -----------------------------------------------------------------------------
 # Babel setup
@@ -244,14 +359,6 @@ def get_locale():
     return session.get("lang", "en")
 
 babel = Babel(app, locale_selector=get_locale)
-
-def create_thumbnail(full_path, thumb_path):
-    try:
-        img = Image.open(full_path)
-        img.thumbnail(THUMB_SIZE)
-        img.save(thumb_path, optimize=True, quality=85)
-    except Exception as e:
-        print("Thumbnail generation error:", e)
 
 @app.context_processor
 def inject_globals():
@@ -303,7 +410,7 @@ def index():
     # Ensure main_image is filename-only
     for item in items:
         item['main_image'] = os.path.basename(item['main_image'] or 'no-image.png')
-
+        print(f"--> {item['id']} - {item['main_image']}")
     return render_template("index.html", items=items)
 
 @app.route("/item/<int:item_id>")
@@ -393,65 +500,105 @@ def add_item():
         stock = int(request.form.get("stock", 0))
         category = request.form.get("category", "").strip()
         category_new = request.form.get("category_new", "").strip()
-        if category == "":
+        if not category:
             category = category_new
         available = 1 if request.form.get("available") else 0
 
-        image_order_json = request.form.get("image_order", "[]")
-        main_image_id = request.form.get("main_image", "")
-        delete_list_json = request.form.get("delete_list", "[]")
-        files = request.files.getlist("new_images")
-
-        # --- Insert new item ---
+        # --- Insert item ---
         cur.execute("""
             INSERT INTO items (title, description, price, stock, category, available)
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (title, description, price, stock, category, available))
-        conn.commit()
         item_id = cur.lastrowid
 
-        # --- Delete any images if provided (for consistency, usually empty on add) ---
+        # --- Handle uploaded files ---
+        files = request.files.getlist("new_images")
+        image_order_json = request.form.get("image_order", "[]")
+        delete_list = json.loads(request.form.get("delete_list", "[]"))
+
         try:
-            delete_ids = json.loads(delete_list_json)
+            image_order = json.loads(image_order_json)
         except Exception:
-            delete_ids = []
+            image_order = []
 
-            THUMB_FOLDER = "static/images/thumbs"
+        # Save new files
+        new_ids_map = {}
+        for f in files:
+            if not f or f.filename == "":
+                continue
+            # Save main image
+            filename = secure_filename(f.filename)
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            f.save(file_path)
 
-        for img_id in delete_ids:
-            cur.execute("SELECT filename, thumb FROM item_images WHERE id=%s", (img_id,))
-            row = cur.fetchone()
-            if row:
-                for path in [os.path.join(UPLOAD_FOLDER, row['filename']),
-                             os.path.join(THUMB_FOLDER, row['thumb'])]:
-                    if path and os.path.exists(path):
-                        os.remove(path)
-                cur.execute("DELETE FROM item_images WHERE id=%s", (img_id,))
+            # Create thumbnail
+            thumb_path = create_thumbnail(file_path)
 
-        # --- Process uploaded images/videos ---
-        main_image_path = save_item_images(cur, conn, item_id, files, image_order_json, main_image_id)
-        if main_image_path:
+            # Insert into DB
+            cur.execute("""
+                INSERT INTO item_images (item_id, filename, thumb, is_main)
+                VALUES (%s, %s, %s, 0)
+            """, (item_id, os.path.basename(file_path), os.path.basename(thumb_path)))
+            db_id = cur.lastrowid
+            new_ids_map[f.filename] = db_id
+
+        # --- Delete unwanted images (from delete_list) ---
+        for del_id in delete_list:
+            if str(del_id).isdigit():
+                cur.execute("SELECT filename, thumb FROM item_images WHERE id=%s", (int(del_id),))
+                row = cur.fetchone()
+                if row:
+                    # Remove files from disk
+                    for path in [
+                        os.path.join(UPLOAD_FOLDER, row["filename"]),
+                        os.path.join(THUMB_FOLDER, row["thumb"])
+                    ]:
+                        try:
+                            if os.path.exists(path):
+                                os.remove(path)
+                        except Exception as e:
+                            print("File deletion error:", e)
+                    # Delete from DB
+                    cur.execute("DELETE FROM item_images WHERE id=%s", (int(del_id),))
+
+        # --- Apply image order ---
+        for pos, img_id in enumerate(image_order):
+            if img_id.startswith("new_"):
+                original_name = img_id.replace("new_", "")
+                db_id = new_ids_map.get(original_name)
+            else:
+                db_id = int(img_id) if str(img_id).isdigit() else None
+            if db_id:
+                cur.execute("UPDATE item_images SET sort_order=%s WHERE id=%s", (pos, db_id))
+
+        # --- Determine main image: always the first remaining one ---
+        cur.execute("SELECT id, filename FROM item_images WHERE item_id=%s ORDER BY sort_order ASC, id ASC", (item_id,))
+        images = cur.fetchall()
+
+        if images:
+            main_image = images[0]
+            main_image_id = main_image["id"]
+            # Set this one as main
+            cur.execute("UPDATE item_images SET is_main=0 WHERE item_id=%s", (item_id,))
+            cur.execute("UPDATE item_images SET is_main=1 WHERE id=%s", (main_image_id,))
+            main_image_path = os.path.join(UPLOAD_FOLDER, main_image["filename"])
             cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (main_image_path, item_id))
-        conn.commit()
 
+        conn.commit()
         cur.close()
         conn.close()
 
-        flash("Item added successfully.", "success")
-        return redirect(url_for("edit_item", item_id=item_id))
+        flash("Item added successfully!", "success")
+        return redirect(url_for("admin_panel"))
 
-    # GET request: show form
+    # --- GET ---
     cur.execute("SELECT DISTINCT category FROM items WHERE category <> '' ORDER BY category ASC")
     categories = [row['category'] for row in cur.fetchall()]
     cur.close()
     conn.close()
 
-    return render_template(
-        "edit_item.html",
-        item=None,
-        gallery=[],
-        categories=categories
-    )
+    return render_template("edit_item.html", item=None, gallery=[], categories=categories)
+
 
 
 @app.route("/edit/<int:item_id>", methods=["GET", "POST"])
@@ -460,89 +607,120 @@ def edit_item(item_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
 
-    # Fetch existing item
-    cur.execute("SELECT * FROM items WHERE id=%s", (item_id,))
-    item = cur.fetchone()
-    if not item:
-        flash("Item not found.", "error")
-        cur.close()
-        conn.close()
-        return redirect(url_for("admin_panel"))
+    # --- GET: load item and gallery ---
+    if request.method == "GET":
+        cur.execute("SELECT * FROM items WHERE id=%s", (item_id,))
+        item = cur.fetchone()
 
-    # Fetch images for gallery
-    cur.execute("""
-        SELECT * FROM item_images
-        WHERE item_id=%s
-        ORDER BY sort_order ASC, id ASC
-    """, (item_id,))
-    rows = cur.fetchall()
-
-    gallery = [
-        {
-            "id_ui": f"item_{row['id']}",  # used by the front-end
-            "id_db": row['id'],  # used for saving to database
-            "filename": row['filename'],
-            "thumb": row['thumb'],
-            "type": "video" if row['filename'].endswith(('.mp4', '.webm', '.mov')) else "image"
-        }
-        for row in rows
-    ]
-
-    # Auto-assign first image as main if none set
-    if not item.get('main_image') and gallery:
-        item['main_image'] = gallery[0]['id_db']
-        cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (item['main_image'], item_id))
-        conn.commit()
-
-    if request.method == "POST":
-        # ... handle POST as you already have ...
-        title = request.form["title"].strip()
-        description = request.form.get("description", "").strip()
-        price = float(request.form["price"].strip().replace(",", "."))
-        stock = int(request.form.get("stock", 0))
-        category = request.form.get("category", "").strip()
-        category_new = request.form.get("category_new", "").strip()
-        if category == "":
-            category = category_new
-        available = 1 if request.form.get("available") else 0
-
-        image_order_json = request.form.get("image_order")
-        main_image_id = request.form.get("main_image")
-        main_image_id = normalize_image_id(main_image_id)
-
-        files = request.files.getlist("new_images")
-
-        # --- Update item info ---
         cur.execute("""
-            UPDATE items
-            SET title=%s, description=%s, price=%s, stock=%s, category=%s, available=%s
-            WHERE id=%s
-        """, (title, description, price, stock, category, available, item_id))
+            SELECT id, filename, thumb, is_main
+            FROM item_images
+            WHERE item_id=%s
+            ORDER BY sort_order ASC
+        """, (item_id,))
+        gallery = cur.fetchall()
 
-        # Handle deletions & new uploads
-        main_image_path = save_item_images(cur, conn, item_id, files, image_order_json, main_image_id)
-        if main_image_path:
-            cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (main_image_path, item_id))
+        cur.execute("SELECT DISTINCT category FROM items WHERE category <> '' ORDER BY category ASC")
+        categories = [row['category'] for row in cur.fetchall()]
 
-        conn.commit()
         cur.close()
         conn.close()
 
-        flash("Item updated successfully!", "success")
-        return redirect(url_for("admin_panel"))
+        return render_template(
+            "edit_item.html",
+            item=item,
+            gallery=gallery,
+            categories=categories
+        )
 
-    # --- Return template on GET ---
-    cur.execute("SELECT DISTINCT category FROM items WHERE category <> '' ORDER BY category ASC")
-    categories = [row['category'] for row in cur.fetchall()]
+    # --- POST: update item details ---
+    title = request.form["title"].strip()
+    description = request.form.get("description", "").strip()
+    price = float(request.form["price"].strip().replace(",", "."))
+    stock = int(request.form.get("stock", 0))
+    category = request.form.get("category", "").strip()
+    category_new = request.form.get("category_new", "").strip()
+    if not category:
+        category = category_new
+    available = 1 if request.form.get("available") else 0
+
+    cur.execute("""
+        UPDATE items
+        SET title=%s, description=%s, price=%s, stock=%s, category=%s, available=%s
+        WHERE id=%s
+    """, (title, description, price, stock, category, available, item_id))
+
+    # --- Process uploads/deletions/reorder ---
+    files = request.files.getlist("new_images")
+    image_order_json = request.form.get("image_order", "[]")
+    delete_list_json = request.form.get("delete_list", "[]")
+
+    try:
+        image_order = json.loads(image_order_json)
+        delete_list = json.loads(delete_list_json)
+    except json.JSONDecodeError:
+        image_order, delete_list = [], []
+
+    # --- Delete removed images ---
+    for img_id in delete_list:
+        cur.execute("SELECT filename, thumb FROM item_images WHERE id=%s AND item_id=%s", (img_id, item_id))
+        row = cur.fetchone()
+        if row:
+            for path in [row["filename"], row["thumb"]]:
+                if path:
+                    try:
+                        os.remove(os.path.join(UPLOAD_FOLDER, path))
+                    except FileNotFoundError:
+                        pass
+        cur.execute("DELETE FROM item_images WHERE id=%s AND item_id=%s", (img_id, item_id))
+
+    # --- Save new uploads ---
+    new_ids_map = {}
+    for f in files:
+        if not f.filename:
+            continue
+        saved = save_file(f)  # your existing file save + thumbnail generator
+        cur.execute("""
+            INSERT INTO item_images (item_id, filename, thumb, is_main)
+            VALUES (%s, %s, %s, 0)
+        """, (item_id, saved["filename"], saved["thumb"]))
+        db_id = cur.lastrowid
+        new_ids_map[f.filename] = db_id
+
+    # --- Apply new order + main image ---
+    for sort_index, img_id in enumerate(image_order):
+        # Map new_ filenames to DB IDs
+        if img_id.startswith("new_"):
+            fname = img_id.replace("new_", "")
+            db_id = new_ids_map.get(fname)
+            if not db_id:
+                continue
+        else:
+            db_id = int(img_id)
+
+        is_main = 1 if sort_index == 0 else 0
+        cur.execute("""
+            UPDATE item_images
+            SET sort_order=%s, is_main=%s
+            WHERE id=%s AND item_id=%s
+        """, (sort_index, is_main, db_id, item_id))
+
+        # Update main image path in items table
+        if is_main:
+            cur.execute("SELECT filename FROM item_images WHERE id=%s", (db_id,))
+            row = cur.fetchone()
+            if row:
+                main_image_path = os.path.join("images", row["filename"])
+                cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (main_image_path, item_id))
+
+    conn.commit()
     cur.close()
     conn.close()
 
-    return render_template(
-        "edit_item.html",
-        item=item,
-        gallery=gallery,
-        categories=categories
-    )
+    flash("Item updated successfully!", "success")
+    return redirect(url_for("admin_panel"))
+
+
 
 @app.route("/delete/<int:item_id>", methods=["POST"])
 @login_required
@@ -568,61 +746,32 @@ def uploaded_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 @app.route("/delete_image/<int:image_id>", methods=["DELETE"])
-def delete_image(image_id):
+def delete_image_route(image_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-
-    # --- Find the image first ---
-    cur.execute("SELECT id, item_id, filename FROM item_images WHERE id=%s", (image_id,))
-    image = cur.fetchone()
-    if not image:
-        return jsonify({"error": "Image not found"}), 404
-
-    item_id = image["item_id"]
-    filename = image["filename"]
-
-    # --- Delete file from disk ---
-    file_path = os.path.join(app.static_folder, "images", filename)
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        print(f"⚠️ Could not remove file {file_path}: {e}")
-
-    # --- Delete DB record ---
-    cur.execute("DELETE FROM item_images WHERE id=%s", (image_id,))
-
-    # --- Check if it was the main image ---
-    cur.execute("SELECT main_image FROM items WHERE id=%s", (item_id,))
-    item = cur.fetchone()
-    was_main = False
-    if item and item["main_image"]:
-        # Compare with stored path (normalize)
-        normalized_main = item["main_image"].split("/")[-1]
-        if normalized_main == filename:
-            was_main = True
-
-    # --- If it was the main image, pick the next available one ---
-    if was_main:
-        cur.execute("""
-            SELECT filename FROM item_images
-            WHERE item_id=%s
-            ORDER BY sort_order ASC LIMIT 1
-        """, (item_id,))
-        next_img = cur.fetchone()
-
-        if next_img:
-            new_main = f"images/{next_img['filename']}"
-            cur.execute("UPDATE items SET main_image=%s WHERE id=%s", (new_main, item_id))
-        else:
-            # No remaining images → clear main_image
-            cur.execute("UPDATE items SET main_image=NULL WHERE id=%s", (item_id,))
-
-    conn.commit()
+    success = delete_image_by_id(cur, conn, image_id)
     cur.close()
     conn.close()
 
+    if not success:
+        return jsonify({"error": "Image not found"}), 404
     return jsonify({"success": True})
+
+@app.route("/delete_images_bulk", methods=["POST"])
+def delete_images_bulk():
+    if not session.get("logged_in"):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    ids = request.json.get("ids", [])
+    if not ids:
+        return jsonify({"error": "No image IDs provided"}), 400
+
+    deleted = 0
+    for img_id in ids:
+        if delete_image_by_id(img_id):
+            deleted += 1
+
+    return jsonify({"success": True, "deleted": deleted})
 
 # --- Update order route ---
 @app.route("/update_order/<int:item_id>", methods=["POST"])
@@ -641,6 +790,39 @@ def update_order(item_id):
     conn.commit()
     cur.close()
     conn.close()
+    return jsonify({"success": True})
+
+@app.route("/delete_image/<image_id>", methods=["DELETE"])
+def delete_image(image_id):
+    if not session.get("logged_in"):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    # Get image record
+    cur.execute("SELECT * FROM item_images WHERE id_ui = %s", (image_id,))
+    image = cur.fetchone()
+    if not image:
+        cur.close()
+        return jsonify({"error": "Image not found"}), 404
+
+    # Delete from DB
+    cur.execute("DELETE FROM item_images WHERE id_ui = %s", (image_id,))
+    conn.commit()
+    cur.close()
+
+    # Delete image files from disk (if exist)
+    full_path = os.path.join(app.static_folder, "images", "full", image["filename"])
+    thumb_path = os.path.join(app.static_folder, "images", "thumbs", image.get("thumb") or image["filename"])
+
+    for path in [full_path, thumb_path]:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as e:
+            print(f"Warning: Could not remove file {path}: {e}")
+
     return jsonify({"success": True})
 
 

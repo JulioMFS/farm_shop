@@ -16,143 +16,127 @@
 
     <div>
       <label class="block text-gray-700 font-medium mb-2">{{ _('Media') }}</label>
+
+      <!-- Drag & Drop Zone -->
       <div id="drop-zone"
            class="w-full p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer text-center text-gray-500 mb-4">
         {{ _('Click or drag files here to upload') }}
       </div>
+
       <input type="file" id="new_images" name="new_images" multiple class="hidden" accept="image/*,video/*">
-      <div id="image-preview-container" class="flex flex-wrap gap-4"></div>
+
+      <!-- ✅ EXISTING GALLERY DISPLAY -->
+      <div id="gallery" class="flex flex-wrap gap-4">
+        {% for img in gallery %}
+          <div class="img-box relative w-32 h-32 border rounded overflow-hidden" data-id="{{ img.id }}">
+              <img src="{{ url_for('static', filename='images/thumbs/' + img.thumb) }}"
+                   alt="{{ img.filename }}"
+                   class="w-full h-full object-cover">
+              <div class="absolute top-1 right-1 flex gap-1">
+                  <span class="main-icon {% if img.is_main %}active{% endif %} cursor-default">⭐</span>
+                  <span class="delete-icon cursor-pointer text-red-500">🗑️</span>
+              </div>
+          </div>
+        {% endfor %}
+      </div>
 
       <!-- Hidden inputs -->
-      <input type="hidden" id="image_order" name="image_order" value="">
-      <input type="hidden" id="main_image" name="main_image" value="">
       <input type="hidden" id="delete_list" name="delete_list" value="[]">
+      <input type="hidden" id="image_order" name="image_order" value="">
     </div>
 
+    <!-- Action buttons -->
     <div class="flex justify-end items-center gap-4 pt-6">
-      <a href="{{ url_for('admin_panel') }}" class="px-5 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition">
+      <a href="{{ url_for('admin_panel') }}"
+         class="px-5 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition">
         {{ _("Cancel") }}
       </a>
-      <button type="submit" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+      <button type="submit"
+              class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
         {{ _("Save Changes") }}
       </button>
     </div>
   </form>
 </div>
 
+<!-- ✅ GALLERY JS -->
 <script nonce="{{ csp_nonce() }}">
-const dropZone = document.getElementById("drop-zone");
-const fileInput = document.getElementById("new_images");
-const container = document.getElementById("image-preview-container");
-const mainInput = document.getElementById("main_image");
-const imageOrderInput = document.getElementById("image_order");
-const delete_list = document.getElementById("delete_list");
+document.addEventListener("DOMContentLoaded", () => {
+    const gallery = document.getElementById("gallery");
+    const deleteListInput = document.getElementById("delete_list");
+    const imageOrderInput = document.getElementById("image_order");
 
-// --- Initialize existing images ---
-window.existingImages = [];
-{% for img in gallery %}
-  window.existingImages.push({
-    id: "{{ img.id_ui }}",
-    type: "{{ 'video' if img.filename.endswith(('.mp4','.webm','.mov')) else 'image' }}",
-    filename: "{{ img.filename }}",
-    thumb: "{{ img.thumb }}"
-  });
-{% endfor %}
+    let deleteList = [];
+    let dragSrc = null;
 
-// --- Drag & drop / click ---
-dropZone.addEventListener("click", () => fileInput.click());
-dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("border-green-500"); });
-dropZone.addEventListener("dragleave", () => dropZone.classList.remove("border-green-500"));
-dropZone.addEventListener("drop", e => {
-  e.preventDefault();
-  dropZone.classList.remove("border-green-500");
-  handleFiles(e.dataTransfer.files);
-});
-fileInput.addEventListener("change", e => handleFiles(e.target.files));
+    // --- Make images draggable ---
+    function enableDragging() {
+        gallery.querySelectorAll(".img-box").forEach(box => {
+            box.setAttribute("draggable", true);
 
-function handleFiles(files) {
-  [...files].forEach(file => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const id = "new_" + crypto.randomUUID();
-      const type = file.type.startsWith("video/") ? "video" : "image";
-      window.existingImages.push({ id, thumb: reader.result, type, filename: file.name });
-      renderImages();
-    };
-    reader.readAsDataURL(file);
-  });
-}
+            box.addEventListener("dragstart", e => {
+                dragSrc = box;
+                e.dataTransfer.effectAllowed = "move";
+                box.classList.add("opacity-50");
+            });
 
-function renderImages() {
-  container.innerHTML = "";
-  window.existingImages.forEach(media => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "relative w-32 h-32 cursor-move";
-    wrapper.dataset.id = media.id;
-    wrapper.draggable = true;
+            box.addEventListener("dragover", e => e.preventDefault());
+            box.addEventListener("drop", e => {
+                e.preventDefault();
+                if (dragSrc && dragSrc !== box) {
+                    gallery.insertBefore(dragSrc, box);
+                    updateImageOrder();
+                    updateMainImage();
+                }
+            });
 
-    let mediaEl;
-    if (media.type === "video") {
-      mediaEl = document.createElement("video");
-      mediaEl.src = media.thumb.startsWith("data:") ? media.thumb : "/static/images/full/" + media.filename;
-      mediaEl.controls = true;
-      mediaEl.muted = true;
-      mediaEl.className = "w-full h-full object-cover rounded border shadow-sm";
-    } else {
-      mediaEl = document.createElement("img");
-      mediaEl.src = media.thumb.startsWith("data:") ? media.thumb : "/static/images/thumbs/" + (media.thumb || media.filename);
-      mediaEl.className = "w-full h-full object-cover rounded border shadow-sm";
+            box.addEventListener("dragend", () => {
+                box.classList.remove("opacity-50");
+                dragSrc = null;
+            });
+        });
     }
 
-    // ★ main star
-    const star = document.createElement("div");
-    star.className = "absolute top-1 left-1 text-sm px-1 bg-black/50 text-yellow-400 rounded";
-    star.textContent = "★";
+    // --- Delete an image ---
+    gallery.addEventListener("click", (e) => {
+        if (e.target.classList.contains("delete-icon")) {
+            const imgBox = e.target.closest(".img-box");
+            const imgId = imgBox.dataset.id;
 
-    // 🗑 delete
-    const del = document.createElement("button");
-    del.type = "button";
-    del.textContent = "🗑";
-    del.className = "absolute top-1 right-1 text-xs px-1 bg-black/60 text-red-300 rounded hover:bg-black";
-    del.addEventListener("click", () => deleteMedia(media.id));
+            imgBox.remove(); // remove visually
 
-    wrapper.appendChild(mediaEl);
-    wrapper.appendChild(star);
-    wrapper.appendChild(del);
-    container.appendChild(wrapper);
-    enableDragging(wrapper);
-  });
-  updateOrder();
-}
+            // record deletions only for saved images
+            if (!imgId.startsWith("new_")) {
+                deleteList.push(parseInt(imgId));
+                deleteListInput.value = JSON.stringify(deleteList);
+            }
 
-function deleteMedia(id) {
-  if (!id.startsWith("new_")) {
-    const current = JSON.parse(delete_list.value || "[]");
-    current.push(id);
-    delete_list.value = JSON.stringify(current);
-  }
-  window.existingImages = window.existingImages.filter(m => m.id !== id);
-  renderImages();
-}
+            updateImageOrder();
+            updateMainImage();
+        }
+    });
 
-let drag = null;
-function enableDragging(el) {
-  el.addEventListener("dragstart", () => drag = el);
-  el.addEventListener("dragover", e => e.preventDefault());
-  el.addEventListener("drop", () => {
-    if (drag && drag !== el) container.insertBefore(drag, el);
-    updateOrder();
-  });
-}
+    // --- Update image order ---
+    function updateImageOrder() {
+        const ids = [...gallery.querySelectorAll(".img-box")].map(b => b.dataset.id);
+        imageOrderInput.value = JSON.stringify(ids);
+    }
 
-function updateOrder() {
-  const ids = [...container.children].map(el => el.dataset.id);
-  imageOrderInput.value = JSON.stringify(ids);
-  mainInput.value = ids[0] || "";
-}
+    // --- Always make first image main ---
+    function updateMainImage() {
+        gallery.querySelectorAll(".main-icon").forEach(i => i.classList.remove("active"));
+        const firstBox = gallery.querySelector(".img-box");
+        if (firstBox) {
+            const star = firstBox.querySelector(".main-icon");
+            if (star) star.classList.add("active");
+        }
+    }
 
-// Initial render
-renderImages();
+    // Initialize
+    enableDragging();
+    updateImageOrder();
+    updateMainImage();
+});
 </script>
 
 {% endblock %}
