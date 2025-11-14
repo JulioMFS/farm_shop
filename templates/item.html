@@ -8,11 +8,11 @@
       {% set main = gallery[0] %}
       {% if main.filename.endswith(('.mp4', '.webm', '.mov')) %}
         <video id="main_media" controls class="w-full h-96 rounded-lg border mb-6">
-          <source src="{{ url_for('static', filename='images/' ~ main.filename) }}" type="video/mp4">
+          <source src="{{ url_for('static', filename=main.filename) }}" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       {% else %}
-        <img id="main_media" src="{{ url_for('static', filename='images/' ~ main.filename) }}"
+        <img id="main_media" src="{{ url_for('static', filename=main.filename) }}"
              alt="{{ _('Main media of') }} {{ item.title }}"
              class="w-full h-96 object-contain rounded-lg mb-6 border border-gray-300">
       {% endif %}
@@ -30,7 +30,7 @@
             <source src="{{ url_for('static', filename='images/' ~ img.filename) }}" type="video/mp4">
           </video>
         {% else %}
-          <img src="{{ url_for('static', filename='images/thumbs/' ~ img.thumb or img.filename) }}"
+          <img src="{{ url_for('static', filename=img.thumb or img.filename) }}"
                alt="{{ _('Gallery image') }} {{ loop.index }}"
                class="w-24 h-24 object-cover rounded-lg border cursor-pointer thumbnail"
                data-full="{{ url_for('static', filename='images/' ~ img.filename) }}"

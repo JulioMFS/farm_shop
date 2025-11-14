@@ -25,15 +25,12 @@
 
       <input type="file" id="new_images" name="new_images" multiple class="hidden" accept="image/*,video/*">
 
-      <!-- ✅ EXISTING GALLERY DISPLAY -->
+      <!-- EXISTING GALLERY DISPLAY -->
       <div id="gallery" class="flex flex-wrap gap-4">
         {% for img in gallery %}
           <div class="img-box relative w-32 h-32 border rounded overflow-hidden" data-id="{{ img.id }}">
-              <img src="{{ url_for('static', filename='images/thumbs/' + img.thumb) }}"
-                   alt="{{ img.filename }}"
-                   class="w-full h-full object-cover">
+              <img src="{{ url_for('static', filename=img.thumb) }}" alt="" class="w-full h-full object-cover">
               <div class="absolute top-1 right-1 flex gap-1">
-                  <span class="main-icon {% if img.is_main %}active{% endif %} cursor-default">⭐</span>
                   <span class="delete-icon cursor-pointer text-red-500">🗑️</span>
               </div>
           </div>
@@ -59,17 +56,19 @@
   </form>
 </div>
 
-<!-- ✅ GALLERY JS -->
+<!-- GALLERY & DRAG-DROP JS -->
 <script nonce="{{ csp_nonce() }}">
 document.addEventListener("DOMContentLoaded", () => {
     const gallery = document.getElementById("gallery");
     const deleteListInput = document.getElementById("delete_list");
     const imageOrderInput = document.getElementById("image_order");
+    const dropZone = document.getElementById("drop-zone");
+    const newImagesInput = document.getElementById("new_images");
 
     let deleteList = [];
     let dragSrc = null;
 
-    // --- Make images draggable ---
+    // --- Enable dragging of gallery images ---
     function enableDragging() {
         gallery.querySelectorAll(".img-box").forEach(box => {
             box.setAttribute("draggable", true);
@@ -81,6 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             box.addEventListener("dragover", e => e.preventDefault());
+
             box.addEventListener("drop", e => {
                 e.preventDefault();
                 if (dragSrc && dragSrc !== box) {
@@ -103,9 +103,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const imgBox = e.target.closest(".img-box");
             const imgId = imgBox.dataset.id;
 
-            imgBox.remove(); // remove visually
+            imgBox.remove();
 
-            // record deletions only for saved images
             if (!imgId.startsWith("new_")) {
                 deleteList.push(parseInt(imgId));
                 deleteListInput.value = JSON.stringify(deleteList);
@@ -116,27 +115,103 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- Update image order ---
+    // --- Update hidden image_order field ---
     function updateImageOrder() {
         const ids = [...gallery.querySelectorAll(".img-box")].map(b => b.dataset.id);
         imageOrderInput.value = JSON.stringify(ids);
     }
 
-    // --- Always make first image main ---
+    // --- Set main image (first in gallery) ---
     function updateMainImage() {
-        gallery.querySelectorAll(".main-icon").forEach(i => i.classList.remove("active"));
-        const firstBox = gallery.querySelector(".img-box");
-        if (firstBox) {
-            const star = firstBox.querySelector(".main-icon");
-            if (star) star.classList.add("active");
-        }
+        gallery.querySelectorAll(".img-box").forEach((box, idx) => {
+            const star = box.querySelector(".main-icon");
+            if (star) {
+                if (idx === 0) {
+                    star.classList.add("active");
+                } else {
+                    star.classList.remove("active");
+                }
+            }
+        });
     }
 
-    // Initialize
+    // --- Handle new files (images & videos) ---
+    function handleFiles(files) {
+        if (!files || files.length === 0) return;
+
+        // Add new files to the real file input
+        const dataTransfer = new DataTransfer();
+        [...newImagesInput.files].forEach(f => dataTransfer.items.add(f));
+        [...files].forEach(f => dataTransfer.items.add(f));
+        newImagesInput.files = dataTransfer.files;
+
+        [...files].forEach(file => {
+            const div = document.createElement("div");
+            div.className = "img-box relative w-32 h-32 border rounded overflow-hidden";
+            div.dataset.id = "new_" + file.name;
+
+            if (file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}" class="w-full h-full object-cover">
+                        <div class="absolute top-1 right-1 flex gap-1">
+                            <span class="delete-icon cursor-pointer text-red-500">🗑️</span>
+                        </div>
+                    `;
+                    gallery.appendChild(div);
+                    enableDragging();
+                    updateImageOrder();
+                    updateMainImage();
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith("video/")) {
+                const url = URL.createObjectURL(file);
+                div.innerHTML = `
+                    <video src="${url}" class="w-full h-full object-cover" controls></video>
+                    <div class="absolute top-1 right-1 flex gap-1">
+                        <span class="delete-icon cursor-pointer text-red-500">🗑️</span>
+                    </div>
+                `;
+                gallery.appendChild(div);
+                enableDragging();
+                updateImageOrder();
+                updateMainImage();
+            }
+        });
+    }
+
+    // --- Drop zone click opens file picker ---
+    dropZone.addEventListener("click", () => newImagesInput.click());
+
+    // --- Drag & drop events ---
+    ["dragenter", "dragover"].forEach(evt => {
+        dropZone.addEventListener(evt, e => {
+            e.preventDefault();
+            dropZone.classList.add("border-blue-400");
+        });
+    });
+
+    dropZone.addEventListener("dragleave", e => {
+        e.preventDefault();
+        dropZone.classList.remove("border-blue-400");
+    });
+
+    dropZone.addEventListener("drop", e => {
+        e.preventDefault();
+        dropZone.classList.remove("border-blue-400");
+        handleFiles(e.dataTransfer.files);
+    });
+
+    // --- File input change (click upload) ---
+    newImagesInput.addEventListener("change", () => handleFiles(newImagesInput.files));
+
+    // --- Initialize ---
     enableDragging();
     updateImageOrder();
     updateMainImage();
 });
 </script>
+
 
 {% endblock %}
