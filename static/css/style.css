@@ -108,3 +108,26 @@ hr {
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
 }
+.loading-hidden {
+    display: none;
+}
+/* Loading overlay hidden state */
+#loading-overlay {
+    opacity: 1;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    visibility: visible;
+}
+
+/* Hidden state */
+#loading-overlay.loading-hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+#loading-overlay .loader {
+    transform: scale(0.8);
+    transition: transform 0.5s ease;
+}
+
+#loading-overlay:not(.loading-hidden) .loader {
+    transform: scale(1);
+}

@@ -7,8 +7,55 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/6.6.6/css/flag-icons.min.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Loading overlay styles */
+    #loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(255,255,255,0.7);
+        backdrop-blur: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    #loading-overlay.loading-hidden {
+        opacity: 0;
+        visibility: hidden;
+    }
+    #loading-overlay .loader {
+        width: 4rem;
+        height: 4rem;
+        border: 4px solid #ccc;
+        border-top-color: #16a34a; /* green-600 */
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        transform: scale(0.8);
+        transition: transform 0.5s ease;
+    }
+    #loading-overlay:not(.loading-hidden) .loader {
+        transform: scale(1);
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body class="bg-green-50 text-gray-800">
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-hidden flex flex-col items-center justify-center">
+      <div class="loader"></div>
+      <div id="upload-progress-container" class="w-64 mt-4 hidden">
+          <div class="w-full h-2 bg-gray-300 rounded overflow-hidden">
+              <div id="upload-progress-bar" class="h-2 bg-green-600 w-0"></div>
+          </div>
+          <span id="upload-progress-text" class="text-sm mt-1 text-gray-700">0%</span>
+      </div>
+  </div>
 
   <!-- Navigation -->
   <nav class="bg-green-700 text-white p-4 shadow">
@@ -55,7 +102,7 @@
     </div>
   </nav>
 
-  <!-- Content -->
+  <!-- Main Content -->
   <main class="container mx-auto p-6">
     {% block content %}{% endblock %}
   </main>
@@ -77,15 +124,7 @@
                       {% else %}bg-gray-700{% endif %}"
                role="alert">
             <div class="flex items-center gap-2">
-              {% if category == 'success' %}
-                <i class="bi bi-check-circle text-white"></i>
-              {% elif category == 'error' %}
-                <i class="bi bi-x-circle text-white"></i>
-              {% elif category == 'warning' %}
-                <i class="bi bi-exclamation-triangle text-white"></i>
-              {% else %}
-                <i class="bi bi-info-circle text-white"></i>
-              {% endif %}
+              <i class="bi bi-info-circle text-white"></i>
               <span>{{ message }}</span>
             </div>
             <button type="button" class="text-white hover:text-gray-200" onclick="this.parentElement.remove()">✖</button>
@@ -97,22 +136,25 @@
 
   <!-- Scripts -->
   <script nonce="{{ csp_nonce() }}">
-  document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("langButton");
-    const menu = document.getElementById("langMenu");
-    if (btn && menu) {
-      btn.addEventListener("click", () => menu.classList.toggle("hidden"));
-      document.addEventListener("click", e => {
-        if (!btn.contains(e.target) && !menu.contains(e.target)) menu.classList.add("hidden");
+    // Language menu toggle
+    document.addEventListener("DOMContentLoaded", () => {
+      const btn = document.getElementById("langButton");
+      const menu = document.getElementById("langMenu");
+      if (btn && menu) {
+        btn.addEventListener("click", () => menu.classList.toggle("hidden"));
+        document.addEventListener("click", e => {
+          if (!btn.contains(e.target) && !menu.contains(e.target)) menu.classList.add("hidden");
+        });
+      }
+
+      // Toast auto-hide
+      document.querySelectorAll("#toast-container .toast").forEach(toast => {
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => toast.remove(), 500);
+        }, 3500);
       });
-    }
-    document.querySelectorAll("#toast-container .toast").forEach(toast => {
-      setTimeout(() => {
-        toast.style.opacity = "0";
-        setTimeout(() => toast.remove(), 500);
-      }, 3500);
     });
-  });
   </script>
 
 </body>

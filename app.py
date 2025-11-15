@@ -117,7 +117,9 @@ def init_db():
             price DECIMAL(10,2) NOT NULL,
             category VARCHAR(100),
             image VARCHAR(255),
-            available BOOLEAN DEFAULT TRUE
+            available BOOLEAN DEFAULT TRUE,
+            main_image VARCHAR(255),
+            stock INT DEFAULT 0
         )
     """)
     cur.execute("""
@@ -125,6 +127,7 @@ def init_db():
             id INT AUTO_INCREMENT PRIMARY KEY,
             item_id INT NOT NULL,
             filename VARCHAR(255) NOT NULL,
+            thumb VARCHAR(255),
             is_main BOOLEAN DEFAULT FALSE,
             sort_order INT DEFAULT 0,
             FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE

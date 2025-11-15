@@ -29,7 +29,7 @@
       <div id="gallery" class="flex flex-wrap gap-4">
         {% for img in gallery %}
           <div class="img-box relative w-32 h-32 border rounded overflow-hidden" data-id="{{ img.id }}">
-              <img src="{{ url_for('static', filename=img.thumb) }}" alt="" class="w-full h-full object-cover">
+              <img src="{{ url_for('static', filename=img.thumb) }}" loading="lazy" alt="" class="w-full h-full object-cover">
               <div class="absolute top-1 right-1 flex gap-1">
                   <span class="delete-icon cursor-pointer text-red-500">🗑️</span>
               </div>
@@ -57,14 +57,36 @@
 </div>
 
 <!-- GALLERY & DRAG-DROP JS -->
-<script nonce="{{ csp_nonce() }}">
+<script type="module" nonce="{{ csp_nonce() }}">
+import { showLoading, hideLoading, previewLoading, startProgress, updateProgress, finishProgress } from "{{ url_for('static', filename='js/loader.js') }}";
+
+// --- Resize image for preview ---
+function resizeImage(file, maxWidth = 300) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const scale = maxWidth / img.width;
+                const canvas = document.createElement("canvas");
+                canvas.width = maxWidth;
+                canvas.height = img.height * scale;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.7);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     const gallery = document.getElementById("gallery");
     const deleteListInput = document.getElementById("delete_list");
     const imageOrderInput = document.getElementById("image_order");
     const dropZone = document.getElementById("drop-zone");
     const newImagesInput = document.getElementById("new_images");
-
     let deleteList = [];
     let dragSrc = null;
 
@@ -72,28 +94,20 @@ document.addEventListener("DOMContentLoaded", () => {
     function enableDragging() {
         gallery.querySelectorAll(".img-box").forEach(box => {
             box.setAttribute("draggable", true);
-
             box.addEventListener("dragstart", e => {
                 dragSrc = box;
                 e.dataTransfer.effectAllowed = "move";
                 box.classList.add("opacity-50");
             });
-
             box.addEventListener("dragover", e => e.preventDefault());
-
             box.addEventListener("drop", e => {
                 e.preventDefault();
                 if (dragSrc && dragSrc !== box) {
                     gallery.insertBefore(dragSrc, box);
                     updateImageOrder();
-                    updateMainImage();
                 }
             });
-
-            box.addEventListener("dragend", () => {
-                box.classList.remove("opacity-50");
-                dragSrc = null;
-            });
+            box.addEventListener("dragend", () => box.classList.remove("opacity-50"));
         });
     }
 
@@ -102,16 +116,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.target.classList.contains("delete-icon")) {
             const imgBox = e.target.closest(".img-box");
             const imgId = imgBox.dataset.id;
-
             imgBox.remove();
-
             if (!imgId.startsWith("new_")) {
                 deleteList.push(parseInt(imgId));
                 deleteListInput.value = JSON.stringify(deleteList);
             }
-
             updateImageOrder();
-            updateMainImage();
         }
     });
 
@@ -121,64 +131,45 @@ document.addEventListener("DOMContentLoaded", () => {
         imageOrderInput.value = JSON.stringify(ids);
     }
 
-    // --- Set main image (first in gallery) ---
-    function updateMainImage() {
-        gallery.querySelectorAll(".img-box").forEach((box, idx) => {
-            const star = box.querySelector(".main-icon");
-            if (star) {
-                if (idx === 0) {
-                    star.classList.add("active");
-                } else {
-                    star.classList.remove("active");
-                }
-            }
-        });
-    }
-
     // --- Handle new files (images & videos) ---
-    function handleFiles(files) {
+    async function handleFiles(files) {
         if (!files || files.length === 0) return;
 
-        // Add new files to the real file input
         const dataTransfer = new DataTransfer();
         [...newImagesInput.files].forEach(f => dataTransfer.items.add(f));
         [...files].forEach(f => dataTransfer.items.add(f));
         newImagesInput.files = dataTransfer.files;
 
-        [...files].forEach(file => {
+        for (const file of files) {
             const div = document.createElement("div");
             div.className = "img-box relative w-32 h-32 border rounded overflow-hidden";
             div.dataset.id = "new_" + file.name;
 
             if (file.type.startsWith("image/")) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    div.innerHTML = `
-                        <img src="${e.target.result}" alt="${file.name}" class="w-full h-full object-cover">
-                        <div class="absolute top-1 right-1 flex gap-1">
-                            <span class="delete-icon cursor-pointer text-red-500">🗑️</span>
-                        </div>
-                    `;
-                    gallery.appendChild(div);
-                    enableDragging();
-                    updateImageOrder();
-                    updateMainImage();
-                };
-                reader.readAsDataURL(file);
+                const blob = await resizeImage(file, 300);
+                const url = URL.createObjectURL(blob);
+                previewLoading();
+                div.innerHTML = `
+                    <img src="${url}" loading="lazy" alt="${file.name}" class="w-full h-full object-cover">
+                    <div class="absolute top-1 right-1 flex gap-1">
+                        <span class="delete-icon cursor-pointer text-red-500">🗑️</span>
+                    </div>
+                `;
             } else if (file.type.startsWith("video/")) {
                 const url = URL.createObjectURL(file);
+                previewLoading();
                 div.innerHTML = `
                     <video src="${url}" class="w-full h-full object-cover" controls></video>
                     <div class="absolute top-1 right-1 flex gap-1">
                         <span class="delete-icon cursor-pointer text-red-500">🗑️</span>
                     </div>
                 `;
-                gallery.appendChild(div);
-                enableDragging();
-                updateImageOrder();
-                updateMainImage();
             }
-        });
+
+            gallery.appendChild(div);
+            enableDragging();
+            updateImageOrder();
+        }
     }
 
     // --- Drop zone click opens file picker ---
@@ -191,27 +182,50 @@ document.addEventListener("DOMContentLoaded", () => {
             dropZone.classList.add("border-blue-400");
         });
     });
-
     dropZone.addEventListener("dragleave", e => {
         e.preventDefault();
         dropZone.classList.remove("border-blue-400");
     });
-
     dropZone.addEventListener("drop", e => {
         e.preventDefault();
         dropZone.classList.remove("border-blue-400");
         handleFiles(e.dataTransfer.files);
     });
 
-    // --- File input change (click upload) ---
+    // --- File input change ---
     newImagesInput.addEventListener("change", () => handleFiles(newImagesInput.files));
 
-    // --- Initialize ---
+    // --- Form submission with progress ---
+    const form = document.getElementById("itemForm");
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        showLoading();
+        startProgress();
+
+        const formData = new FormData(form);
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", form.action, true);
+
+        xhr.upload.addEventListener("progress", (evt) => {
+            if (evt.lengthComputable) {
+                const percent = Math.round((evt.loaded / evt.total) * 100);
+                updateProgress(percent);
+            }
+        });
+
+        xhr.onload = () => finishProgress();
+        xhr.onerror = () => finishProgress();
+        xhr.send(formData);
+    });
+
+    // --- Initialize gallery ---
     enableDragging();
     updateImageOrder();
-    updateMainImage();
+
+    // --- Hide loader quickly after initial images (max 1.5s) ---
+    showLoading();
+    setTimeout(hideLoading, 1500);
 });
 </script>
-
 
 {% endblock %}
